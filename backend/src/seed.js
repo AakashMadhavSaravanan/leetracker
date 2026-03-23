@@ -7,11 +7,20 @@ import Note from './models/Note.js';
 import NoteQuestion from './models/NoteQuestion.js';
 import Submission from './models/Submission.js';
 
-dotenv.config();
+dotenv.config({ override: true });
 
 const seedDB = async () => {
+  const uri = process.env.MONGODB_URI;
+  if (!uri || uri.includes('<db_password>') || uri.includes('YOUR_ACTUAL_PASSWORD_HERE')) {
+    console.error('❌ SEED ERROR: MONGODB_URI is missing or contains a placeholder in backend/.env');
+    console.log('Please open backend/.env and replace YOUR_ACTUAL_PASSWORD_HERE with your real MongoDB Atlas password.');
+    process.exit(1);
+  }
+
   try {
-    await mongoose.connect(process.env.MONGODB_URI);
+    const maskedUri = uri.replace(/:([^@]+)@/, ':****@');
+    console.log(`Connecting to MongoDB using: ${maskedUri}`);
+    await mongoose.connect(uri, { serverSelectionTimeoutMS: 5000 });
     console.log('Connected to DB for seeding...');
 
     // Clear existing
