@@ -3,6 +3,13 @@ import Problem from '../models/Problem.js';
 import User from '../models/User.js';
 import { verifySubmission } from '../services/verificationService.js';
 import crypto from 'crypto';
+import { v2 as cloudinary } from 'cloudinary';
+
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET
+});
 
 export const getToken = async (req, res) => {
   try {
@@ -22,11 +29,36 @@ export const getToken = async (req, res) => {
 
 export const submitSolution = async (req, res) => {
   try {
-    const { problem_id, code, screenshot_url, token_used } = req.body;
+    const { problem_id, code, token_used } = req.body;
+    let { screenshot_url } = req.body;
+    const file = req.file;
 
     const problem = await Problem.findById(problem_id);
     if (!problem) {
       return res.status(404).json({ message: 'Problem not found' });
+    }
+
+    // Handle File Upload to Cloudinary if file provided
+    if (file) {
+      try {
+        const result = await new Promise((resolve, reject) => {
+          const uploadStream = cloudinary.uploader.upload_stream(
+            { resource_type: 'image', folder: 'submissions' },
+            (error, result) => {
+              if (error) reject(error);
+              else resolve(result);
+            }
+          );
+          uploadStream.end(file.buffer);
+        });
+        screenshot_url = result.secure_url;
+      } catch (uploadErr) {
+        return res.status(500).json({ message: 'Image upload failed', error: uploadErr.message });
+      }
+    }
+
+    if (!screenshot_url) {
+      return res.status(400).json({ message: 'Screenshot is required (file or URL)' });
     }
 
     // Call Verification Service (Python)

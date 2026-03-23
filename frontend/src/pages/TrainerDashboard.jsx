@@ -4,6 +4,7 @@ import { Loader2, Users, FileCode, CheckCircle, Clock } from 'lucide-react';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
 import api from '../api/axiosConfig';
 import Leaderboard from '../components/Leaderboard';
+import AddProblemModal from '../components/AddProblemModal';
 
 const TrainerDashboard = () => {
   const [loading, setLoading] = useState(true);
@@ -12,6 +13,7 @@ const TrainerDashboard = () => {
   });
   const [leaderboard, setLeaderboard] = useState([]);
   const [problems, setProblems] = useState([]);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   useEffect(() => {
     fetchDashboardData();
@@ -72,10 +74,24 @@ const TrainerDashboard = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold text-gray-900">Trainer Dashboard</h1>
-        <button onClick={fetchDashboardData} className="px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors">
-          Refresh Data
-        </button>
+        <div className="flex gap-3">
+          <button 
+            onClick={() => setIsModalOpen(true)}
+            className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-semibold hover:bg-indigo-700 transition-all flex items-center gap-2 shadow-md shadow-indigo-100"
+          >
+            <FileCode size={18} /> Assign Problem
+          </button>
+          <button onClick={fetchDashboardData} className="px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors">
+            Refresh Data
+          </button>
+        </div>
       </div>
+
+      <AddProblemModal 
+        isOpen={isModalOpen} 
+        onClose={() => setIsModalOpen(false)} 
+        onSuccess={fetchDashboardData} 
+      />
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
