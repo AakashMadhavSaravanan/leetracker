@@ -74,9 +74,10 @@ export const submitSolution = async (req, res) => {
       screenshot_base64: screenshot_base64,
       token: token_used,
       username: req.user.leetcode_username,
-      problem_title: problem.title
+      problem_title: problem.title,
+      reference_solution: problem.reference_solution // Critical fix: pass reference solution
     });
-    console.log(`[Verification] Result:`, JSON.stringify(verificationResult, null, 2));
+    console.log(`[Verification] Result for ${problem.title}:`, JSON.stringify(verificationResult, null, 2));
 
     // Score calculation
     let difficultyWeight = 10;

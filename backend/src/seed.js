@@ -71,6 +71,7 @@ const seedDB = async () => {
       title: 'Two Sum',
       leetcode_link: 'https://leetcode.com/problems/two-sum',
       difficulty: 'Easy',
+      reference_solution: 'def twoSum(nums, target): \n    prevMap = {} # val : index\n    for i, n in enumerate(nums):\n        diff = target - n\n        if diff in prevMap:\n            return [prevMap[diff], i]\n        prevMap[n] = i\n    return',
       assigned_by: trainer._id,
       assigned_to: [student1._id, student2._id, student3._id]
     });
@@ -79,6 +80,7 @@ const seedDB = async () => {
       title: 'Valid Parentheses',
       leetcode_link: 'https://leetcode.com/problems/valid-parentheses',
       difficulty: 'Easy',
+      reference_solution: 'def isValid(s): \n    Map = {")": "(", "]": "[", "}": "{"}\n    stack = []\n    for c in s:\n        if c not in Map:\n            stack.append(c)\n            continue\n        if not stack or stack[-1] != Map[c]:\n            return False\n        stack.pop()\n    return not stack',
       assigned_by: trainer._id,
       assigned_to: [student1._id, student2._id, student3._id]
     });
@@ -87,6 +89,7 @@ const seedDB = async () => {
       title: 'Best Time to Buy Stock',
       leetcode_link: 'https://leetcode.com/problems/best-time-to-buy-and-sell-stock',
       difficulty: 'Medium',
+      reference_solution: 'def maxProfit(prices): \n    res = 0\n    l = 0\n    for r in range(1, len(prices)):\n        if prices[r] < prices[l]:\n            l = r\n        res = max(res, prices[r] - prices[l])\n    return res',
       assigned_by: trainer._id,
       assigned_to: [student1._id, student2._id, student3._id]
     });
@@ -95,6 +98,7 @@ const seedDB = async () => {
       title: 'LRU Cache',
       leetcode_link: 'https://leetcode.com/problems/lru-cache',
       difficulty: 'Medium', // Specs say medium, leetcode is medium usually
+      reference_solution: 'class Node: \n    def __init__(self, key, val):\n        self.key, self.val = key, val\n        self.prev = self.next = None\n\nclass LRUCache:\n    def __init__(self, capacity: int):\n        self.cap = capacity\n        self.cache = {} # map key to node',
       assigned_by: trainer._id,
       assigned_to: [student1._id, student2._id, student3._id]
     });
@@ -103,6 +107,7 @@ const seedDB = async () => {
       title: 'Merge K Lists',
       leetcode_link: 'https://leetcode.com/problems/merge-k-sorted-lists',
       difficulty: 'Hard',
+      reference_solution: 'def mergeKLists(lists): \n    if not lists or len(lists) == 0:\n        return None\n    while len(lists) > 1:\n        mergedLists = []\n        for i in range(0, len(lists), 2):\n            l1 = lists[i]\n            l2 = lists[i + 1] if (i + 1) < len(lists) else None\n            mergedLists.append(self.mergeList(l1, l2))\n        lists = mergedLists\n    return lists[0]',
       assigned_by: trainer._id,
       assigned_to: [student1._id, student2._id, student3._id]
     });

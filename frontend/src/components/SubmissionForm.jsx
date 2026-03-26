@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import toast from 'react-hot-toast';
-import { Loader2, X, ClipboardType, UploadCloud, Image as ImageIcon } from 'lucide-react';
+import { Loader2, X, ClipboardType, UploadCloud, Image as ImageIcon, CheckCircle } from 'lucide-react';
 import api from '../api/axiosConfig';
 
 const SubmissionForm = ({ problem, onClose, onSuccess }) => {
@@ -10,6 +10,7 @@ const SubmissionForm = ({ problem, onClose, onSuccess }) => {
   const [screenshotUrl, setScreenshotUrl] = useState(''); // Fallback for URL if needed
   const [loadingToken, setLoadingToken] = useState(false);
   const [loadingSubmit, setLoadingSubmit] = useState(false);
+  const [submissionResult, setSubmissionResult] = useState(null);
   const fileInputRef = useRef(null);
 
   const fetchToken = async () => {
@@ -52,13 +53,13 @@ const SubmissionForm = ({ problem, onClose, onSuccess }) => {
         formData.append('screenshot_url', screenshotUrl);
       }
 
-      await api.post('/submissions', formData, {
+      const res = await api.post('/submissions', formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
       
-      toast.success('Submission sent for verification!');
+      setSubmissionResult(res.data);
+      toast.success('Submission processed!');
       if (onSuccess) onSuccess();
-      onClose();
     } catch (error) {
       toast.error(error.response?.data?.message || 'Submission failed');
     } finally {
@@ -80,90 +81,143 @@ const SubmissionForm = ({ problem, onClose, onSuccess }) => {
         </div>
 
         <div className="p-6 overflow-y-auto space-y-6">
-          {/* Step 1: Token */}
-          <div className="p-5 bg-indigo-50 border border-indigo-100 rounded-2xl">
-            <h4 className="font-bold text-indigo-900 mb-2 flex items-center gap-2">
-              <ClipboardType size={18} /> Step 1: Verification Token
-            </h4>
-            <p className="text-sm text-indigo-800/80 mb-4">
-              Include this token as a comment in your code (e.g., <code className="bg-indigo-100 px-1 rounded">// {token || 'TOKEN'}</code>) before taking the screenshot.
-            </p>
-            <div className="flex items-center gap-4">
-              <button 
-                onClick={fetchToken}
-                disabled={loadingToken || !!token}
-                className="px-5 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-semibold hover:bg-indigo-700 disabled:opacity-50 transition-all shadow-md shadow-indigo-200"
-              >
-                {loadingToken ? <Loader2 size={18} className="animate-spin" /> : 'Generate Token'}
-              </button>
-              {token && (
-                <div className="animate-in slide-in-from-left-4 duration-300">
-                  <span className="font-mono bg-white px-4 py-2 border-2 border-dashed border-indigo-300 rounded-xl font-bold text-indigo-700 select-all">
-                    {token}
-                  </span>
+          {submissionResult ? (
+            <div className="space-y-6 animate-in fade-in zoom-in duration-300">
+              <div className={`p-6 rounded-2xl border-2 flex flex-col items-center text-center ${
+                submissionResult.verification?.final_status === 'verified' ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'
+              }`}>
+                <div className={`w-16 h-16 rounded-full flex items-center justify-center mb-4 ${
+                  submissionResult.verification?.final_status === 'verified' ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'
+                }`}>
+                  {submissionResult.verification?.final_status === 'verified' ? <CheckCircle size={32} /> : <X size={32} />}
                 </div>
-              )}
-            </div>
-          </div>
+                <h4 className="text-xl font-bold mb-1 capitalize">
+                  Submission {submissionResult.verification?.final_status}
+                </h4>
+                <p className="text-sm text-gray-600 mb-6">
+                  {submissionResult.verification?.final_status === 'verified' 
+                    ? `Great job! You earned ${submissionResult.score.toFixed(1)} points.`
+                    : "Some verification checks failed. Review the details below."}
+                </p>
 
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Solution Code</label>
-              <textarea
-                value={code}
-                onChange={(e) => setCode(e.target.value)}
-                placeholder="// Enter token here... \n\n// Your solution code..."
-                rows={6}
-                className="w-full font-mono text-sm p-4 border border-gray-200 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all bg-gray-50/30"
-                required
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Step 2: Upload Evidence (Screenshot)</label>
-              <div 
-                onClick={() => fileInputRef.current?.click()}
-                className={`border-2 border-dashed rounded-2xl p-8 text-center cursor-pointer transition-all ${
-                  file ? 'border-indigo-500 bg-indigo-50/50' : 'border-gray-200 hover:border-indigo-400 hover:bg-gray-50'
-                }`}
-              >
-                <input 
-                  type="file" 
-                  ref={fileInputRef} 
-                  onChange={handleFileChange} 
-                  className="hidden" 
-                  accept="image/*"
-                />
-                
-                {file ? (
-                  <div className="flex flex-col items-center">
-                    <div className="w-12 h-12 bg-indigo-100 text-indigo-600 rounded-xl flex items-center justify-center mb-3">
-                      <ImageIcon size={24} />
+                <div className="w-full grid grid-cols-1 gap-3 text-left">
+                  {[
+                    { label: 'Layer 1: Token in Code', status: submissionResult.verification?.token_valid },
+                    { label: 'Layer 2: LeetCode OCR Match', status: submissionResult.verification?.ocr_passed },
+                    { label: 'Layer 3: Solution Similarity', status: submissionResult.verification?.similarity_score >= 0.3 }
+                  ].map((check, idx) => (
+                    <div key={idx} className="flex items-center justify-between p-3 bg-white/50 rounded-xl border border-gray-100">
+                      <span className="text-sm font-medium text-gray-700">{check.label}</span>
+                      {check.status ? (
+                        <span className="text-green-600 flex items-center gap-1 text-xs font-bold uppercase">
+                          <CheckCircle size={14} /> Pass
+                        </span>
+                      ) : (
+                        <span className="text-red-500 flex items-center gap-1 text-xs font-bold uppercase">
+                          <X size={14} /> Fail
+                        </span>
+                      )}
                     </div>
-                    <p className="text-sm font-semibold text-gray-900">{file.name}</p>
-                    <p className="text-xs text-gray-500 mt-1">Ready to verify</p>
-                  </div>
-                ) : (
-                  <div className="flex flex-col items-center">
-                    <UploadCloud size={32} className="text-gray-400 mb-3" />
-                    <p className="text-sm font-semibold text-gray-900">Click to upload LeetCode screenshot</p>
-                    <p className="text-xs text-gray-500 mt-1">Accepts PNG, JPG (Max 5MB)</p>
-                  </div>
-                )}
+                  ))}
+                </div>
               </div>
+              <button
+                onClick={onClose}
+                className="w-full py-4 bg-gray-900 text-white rounded-2xl font-bold hover:bg-gray-800 transition-all shadow-xl"
+              >
+                Close Dashboard
+              </button>
             </div>
+          ) : (
+            <>
+              {/* Step 1: Token */}
+              <div className="p-5 bg-indigo-50 border border-indigo-100 rounded-2xl">
+                <h4 className="font-bold text-indigo-900 mb-2 flex items-center gap-2">
+                  <ClipboardType size={18} /> Step 1: Verification Token
+                </h4>
+                <p className="text-sm text-indigo-800/80 mb-4">
+                  Include this token as a comment in your code (e.g., <code className="bg-indigo-100 px-1 rounded">// {token || 'TOKEN'}</code>) before taking the screenshot.
+                </p>
+                <div className="flex items-center gap-4">
+                  <button 
+                    onClick={fetchToken}
+                    tabIndex="-1"
+                    disabled={loadingToken || !!token}
+                    type="button"
+                    className="px-5 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-semibold hover:bg-indigo-700 disabled:opacity-50 transition-all shadow-md shadow-indigo-200"
+                  >
+                    {loadingToken ? <Loader2 size={18} className="animate-spin" /> : 'Generate Token'}
+                  </button>
+                  {token && (
+                    <div className="animate-in slide-in-from-left-4 duration-300">
+                      <span className="font-mono bg-white px-4 py-2 border-2 border-dashed border-indigo-300 rounded-xl font-bold text-indigo-700 select-all">
+                        {token}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
 
-            <div className="pt-2">
-               <button
-                 type="submit"
-                 disabled={loadingSubmit}
-                 className="w-full flex items-center justify-center py-4 bg-gray-900 text-white rounded-2xl font-bold hover:bg-gray-800 disabled:opacity-70 transition-all shadow-xl shadow-gray-200"
-               >
-                 {loadingSubmit && <Loader2 size={20} className="animate-spin mr-3" />}
-                 Submit for AI Verification
-               </button>
-            </div>
-          </form>
+              <form onSubmit={handleSubmit} className="space-y-6">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Solution Code</label>
+                  <textarea
+                    value={code}
+                    onChange={(e) => setCode(e.target.value)}
+                    placeholder="// Enter token here... \n\n// Your solution code..."
+                    rows={6}
+                    className="w-full font-mono text-sm p-4 border border-gray-200 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all bg-gray-50/30"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Step 2: Upload Evidence (Screenshot)</label>
+                  <div 
+                    onClick={() => fileInputRef.current?.click()}
+                    className={`border-2 border-dashed rounded-2xl p-8 text-center cursor-pointer transition-all ${
+                      file ? 'border-indigo-500 bg-indigo-50/50' : 'border-gray-200 hover:border-indigo-400 hover:bg-gray-50'
+                    }`}
+                  >
+                    <input 
+                      type="file" 
+                      ref={fileInputRef} 
+                      onChange={handleFileChange} 
+                      className="hidden" 
+                      accept="image/*"
+                    />
+                    
+                    {file ? (
+                      <div className="flex flex-col items-center">
+                        <div className="w-12 h-12 bg-indigo-100 text-indigo-600 rounded-xl flex items-center justify-center mb-3">
+                          <ImageIcon size={24} />
+                        </div>
+                        <p className="text-sm font-semibold text-gray-900">{file.name}</p>
+                        <p className="text-xs text-gray-500 mt-1">Ready to verify</p>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center">
+                        <UploadCloud size={32} className="text-gray-400 mb-3" />
+                        <p className="text-sm font-semibold text-gray-900">Click to upload LeetCode screenshot</p>
+                        <p className="text-xs text-gray-500 mt-1">Accepts PNG, JPG (Max 5MB)</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="pt-2">
+                   <button
+                     type="submit"
+                     disabled={loadingSubmit}
+                     className="w-full flex items-center justify-center py-4 bg-gray-900 text-white rounded-2xl font-bold hover:bg-gray-800 disabled:opacity-70 transition-all shadow-xl shadow-gray-200"
+                   >
+                     {loadingSubmit && <Loader2 size={20} className="animate-spin mr-3" />}
+                     Submit for AI Verification
+                   </button>
+                </div>
+              </form>
+            </>
+          )}
         </div>
       </div>
     </div>

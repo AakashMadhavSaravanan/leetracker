@@ -162,12 +162,21 @@ const StudentDashboard = () => {
                         {sub.problem_id?.title || 'Unknown problem'}
                       </td>
                       <td className="px-6 py-4">
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium capitalize
-                          ${sub.verification?.final_status === 'verified' ? 'bg-green-100 text-green-700' : 
-                            sub.verification?.final_status === 'rejected' ? 'bg-red-100 text-red-700' : 
-                            'bg-yellow-100 text-yellow-700'}`}>
-                          {sub.verification?.final_status}
-                        </span>
+                        <div className="flex flex-col gap-1">
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium capitalize w-fit
+                            ${sub.verification?.final_status === 'verified' ? 'bg-green-100 text-green-700' : 
+                              sub.verification?.final_status === 'rejected' ? 'bg-red-100 text-red-700' : 
+                              'bg-yellow-100 text-yellow-700'}`}>
+                            {sub.verification?.final_status}
+                          </span>
+                          {sub.verification?.final_status === 'rejected' && (
+                            <div className="flex gap-1 mt-1">
+                              {!sub.verification.token_valid && <span className="text-[10px] bg-red-50 text-red-500 px-1 rounded border border-red-100">Token</span>}
+                              {!sub.verification.ocr_passed && <span className="text-[10px] bg-red-50 text-red-500 px-1 rounded border border-red-100">OCR</span>}
+                              {sub.verification.similarity_score < 0.3 && <span className="text-[10px] bg-red-50 text-red-500 px-1 rounded border border-red-100">Similarity</span>}
+                            </div>
+                          )}
+                        </div>
                       </td>
                       <td className="px-6 py-4 font-semibold">
                         {sub.score > 0 ? `+${sub.score.toFixed(1)}` : '-'}
