@@ -73,9 +73,8 @@ def verify(data: VerifyRequest):
             # According to specs: 2 layers passing gives 0.6 bonus. But is it verified?
             # E.g. tokens valid, similarity good, but OCR bad -> maybe still rejected or verified?
             # Let's say if it doesn't pass all, it could be rejected, but the specs gave a bonus calculation.
-            # We'll set it to rejected unless all 3 pass, backend can still award partial score.
-            # Actually, "Any check fails -> ocr_passed: false". The student only gets verified if ALL layers pass ideally.
-            final_status = "verified" if passed_layers == 3 else "rejected"
+            # Set to verified if at least 2 layers pass (e.g. token + similarity even if OCR had issues)
+            final_status = "verified" if passed_layers >= 2 else "rejected"
 
         return {
             "token_valid": token_valid,

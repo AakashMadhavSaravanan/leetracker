@@ -68,13 +68,15 @@ export const submitSolution = async (req, res) => {
     }
 
     // Call Verification Service (Python)
+    console.log(`[Verification] Request for User: ${req.user.leetcode_username}, Problem: ${problem.title}`);
     const verificationResult = await verifySubmission({
       code,
-      screenshot_base64: screenshot_base64, // Use base64 string for verification service
+      screenshot_base64: screenshot_base64,
       token: token_used,
       username: req.user.leetcode_username,
       problem_title: problem.title
     });
+    console.log(`[Verification] Result:`, JSON.stringify(verificationResult, null, 2));
 
     // Score calculation
     let difficultyWeight = 10;
