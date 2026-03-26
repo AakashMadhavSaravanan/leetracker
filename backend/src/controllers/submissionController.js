@@ -61,10 +61,16 @@ export const submitSolution = async (req, res) => {
       return res.status(400).json({ message: 'Screenshot is required (file or URL)' });
     }
 
+    // Prepare screenshot for verification service (must be base64)
+    let screenshot_base64 = screenshot_url;
+    if (file) {
+      screenshot_base64 = file.buffer.toString('base64');
+    }
+
     // Call Verification Service (Python)
     const verificationResult = await verifySubmission({
       code,
-      screenshot_base64: screenshot_url, // assuming frontend passing base64 or URL to service
+      screenshot_base64: screenshot_base64, // Use base64 string for verification service
       token: token_used,
       username: req.user.leetcode_username,
       problem_title: problem.title
