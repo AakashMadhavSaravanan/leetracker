@@ -79,40 +79,24 @@ export const submitSolution = async (req, res) => {
     });
     console.log(`[Verification] Result for ${problem.title}:`, JSON.stringify(verificationResult, null, 2));
 
-    // Score calculation
+    // Score calculation (Simplified for Single Layer)
     let difficultyWeight = 10;
     if (problem.difficulty === 'Medium') difficultyWeight = 20;
     if (problem.difficulty === 'Hard') difficultyWeight = 30;
 
-    let verificationBonus = 0.2; // 1 layer passes (minimum basically, if none passed it's 0 usually but spec says 1 layer = 0.2)
-    let passedLayers = 0;
-    if (verificationResult.token_valid) passedLayers++;
-    if (verificationResult.ocr_passed) passedLayers++;
-    if (verificationResult.similarity_score >= 0.3) passedLayers++;
+    // In single-layer mode, if final_status is verified, they get the full score
+    const isVerified = verificationResult.final_status === 'verified';
+    const finalScore = isVerified ? difficultyWeight : 0;
 
-    if (passedLayers === 3) verificationBonus = 1.0;
-    else if (passedLayers === 2) verificationBonus = 0.6;
-    else if (passedLayers <= 1) verificationBonus = 0.2; // Treating 0 layers as 0.2 per spec
-
-    const score = difficultyWeight * verificationBonus;
-
-    const submission = new Submission({
+    const submission = await Submission.create({
       user_id: req.user._id,
-      problem_id,
-      leetcode_username: req.user.leetcode_username,
+      problem_id: problem._id,
       code,
-      screenshot_url,
-      token_used,
-      verification: {
-        token_valid: verificationResult.token_valid,
-        ocr_passed: verificationResult.ocr_passed,
-        similarity_score: verificationResult.similarity_score,
-        final_status: verificationResult.final_status
-      },
-      score
+      screenshot_url: result?.secure_url || screenshot_url,
+      token_used: token_used || 'N/A',
+      verification: verificationResult,
+      score: finalScore
     });
-
-    await submission.save();
 
     // Update streak if verified
     if (verificationResult.final_status === 'verified') {

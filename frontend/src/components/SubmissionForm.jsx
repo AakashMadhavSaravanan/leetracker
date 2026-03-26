@@ -37,7 +37,6 @@ const SubmissionForm = ({ problem, onClose, onSuccess }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!token) return toast.error('Generate a token first.');
     if (!code) return toast.error('Please paste your code.');
     if (!file && !screenshotUrl) return toast.error('Please upload a screenshot.');
 
@@ -46,9 +45,9 @@ const SubmissionForm = ({ problem, onClose, onSuccess }) => {
       const formData = new FormData();
       formData.append('problem_id', problem._id);
       formData.append('code', code);
-      formData.append('token_used', token);
+      formData.append('token_used', 'SINGLE_LAYER_DEV'); // Placeholder for backend compatibility
       if (file) {
-        formData.append('file', file);
+        formData.append('screenshot', file);
       } else {
         formData.append('screenshot_url', screenshotUrl);
       }
@@ -102,9 +101,7 @@ const SubmissionForm = ({ problem, onClose, onSuccess }) => {
 
                 <div className="w-full grid grid-cols-1 gap-3 text-left">
                   {[
-                    { label: 'Layer 1: Token in Code', status: submissionResult.verification?.token_valid },
-                    { label: 'Layer 2: LeetCode OCR Match', status: submissionResult.verification?.ocr_passed },
-                    { label: 'Layer 3: Solution Similarity', status: submissionResult.verification?.similarity_score >= 0.3 }
+                    { label: 'Layer 1: LeetCode OCR Match', status: submissionResult.verification?.ocr_passes || submissionResult.verification?.ocr_passed }
                   ].map((check, idx) => (
                     <div key={idx} className="flex items-center justify-between p-3 bg-white/50 rounded-xl border border-gray-100">
                       <span className="text-sm font-medium text-gray-700">{check.label}</span>
@@ -130,49 +127,25 @@ const SubmissionForm = ({ problem, onClose, onSuccess }) => {
             </div>
           ) : (
             <>
-              {/* Step 1: Token */}
-              <div className="p-5 bg-indigo-50 border border-indigo-100 rounded-2xl">
-                <h4 className="font-bold text-indigo-900 mb-2 flex items-center gap-2">
-                  <ClipboardType size={18} /> Step 1: Verification Token
-                </h4>
-                <p className="text-sm text-indigo-800/80 mb-4">
-                  Include this token as a comment in your code (e.g., <code className="bg-indigo-100 px-1 rounded">// {token || 'TOKEN'}</code>) before taking the screenshot.
-                </p>
-                <div className="flex items-center gap-4">
-                  <button 
-                    onClick={fetchToken}
-                    tabIndex="-1"
-                    disabled={loadingToken || !!token}
-                    type="button"
-                    className="px-5 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-semibold hover:bg-indigo-700 disabled:opacity-50 transition-all shadow-md shadow-indigo-200"
-                  >
-                    {loadingToken ? <Loader2 size={18} className="animate-spin" /> : 'Generate Token'}
-                  </button>
-                  {token && (
-                    <div className="animate-in slide-in-from-left-4 duration-300">
-                      <span className="font-mono bg-white px-4 py-2 border-2 border-dashed border-indigo-300 rounded-xl font-bold text-indigo-700 select-all">
-                        {token}
-                      </span>
-                    </div>
-                  )}
-                </div>
-              </div>
-
               <form onSubmit={handleSubmit} className="space-y-6">
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Solution Code</label>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2 font-bold ring-red-300">
+                    Step 1: Paste Your Code
+                  </label>
                   <textarea
                     value={code}
                     onChange={(e) => setCode(e.target.value)}
-                    placeholder="// Enter token here... \n\n// Your solution code..."
-                    rows={6}
+                    placeholder="// Your solution code here..."
+                    rows={8}
                     className="w-full font-mono text-sm p-4 border border-gray-200 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all bg-gray-50/30"
                     required
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Step 2: Upload Evidence (Screenshot)</label>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2 font-bold">
+                    Step 2: Upload Accepted Screenshot
+                  </label>
                   <div 
                     onClick={() => fileInputRef.current?.click()}
                     className={`border-2 border-dashed rounded-2xl p-8 text-center cursor-pointer transition-all ${

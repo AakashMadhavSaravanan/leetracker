@@ -45,10 +45,7 @@ def health():
 @app.post("/verify")
 def verify(data: VerifyRequest):
     try:
-        # Layer 1: Token in Code
-        token_valid = data.token in data.code
-        
-        # Layer 2: OCR
+        # Single Layer verification: Only OCR check for 'Accepted' and Problem Title
         ocr_passed = verify_screenshot(
             base64_img=data.screenshot_base64,
             username=data.username,
@@ -56,30 +53,12 @@ def verify(data: VerifyRequest):
             token=data.token
         )
         
-        # Layer 3: Similarity
-        # If no reference solution is provided, we just give it 0.5 or 0 based on length? 
-        # For demo purposes, if none provided we can only return 1.0 (assuming it's valid if backend didn't supply it)
-        # We assume the user has a real reference solution eventually.
-        ref_code = data.reference_solution if data.reference_solution else "class Solution: def solve(self): pass"
-        similarity_score = calculate_similarity(data.code, ref_code)
-        
-        # Determine final status
-        passed_layers = sum([token_valid, ocr_passed, similarity_score >= 0.3])
-        if passed_layers == 3:
-            final_status = "verified"
-        elif passed_layers == 0:
-            final_status = "rejected"
-        else:
-            # According to specs: 2 layers passing gives 0.6 bonus. But is it verified?
-            # E.g. tokens valid, similarity good, but OCR bad -> maybe still rejected or verified?
-            # Let's say if it doesn't pass all, it could be rejected, but the specs gave a bonus calculation.
-            # Set to verified if at least 2 layers pass (e.g. token + similarity even if OCR had issues)
-            final_status = "verified" if passed_layers >= 2 else "rejected"
+        final_status = "verified" if ocr_passed else "rejected"
 
         return {
-            "token_valid": token_valid,
+            "token_valid": True, # Hardcoded as true in single-layer mode
             "ocr_passed": ocr_passed,
-            "similarity_score": round(similarity_score, 2),
+            "similarity_score": 1.0, # Hardcoded as 1.0 in single-layer mode
             "final_status": final_status
         }
     except Exception as e:
